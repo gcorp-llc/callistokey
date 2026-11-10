@@ -1,0 +1,6 @@
+{
+  "name": "Minimal Keyboard",
+  "description": "Minimal, fast, private Persian & English Android IME keyboard with classic numeric keypad and GitHub Dark styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

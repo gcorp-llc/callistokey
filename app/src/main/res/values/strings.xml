@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Minimal Keyboard</string>
+    <string name="ime_name">Minimal Keyboard</string>
+    <string name="ime_subtype_en">English (US)</string>
+    <string name="ime_subtype_fa">Persian (فارسی)</string>
+
+    <string name="enable_keyboard">1. Enable Keyboard</string>
+    <string name="enable_keyboard_desc">Enable Minimal Keyboard in Android System Settings</string>
+    <string name="select_keyboard">2. Switch to Minimal Keyboard</string>
+    <string name="select_keyboard_desc">Set Minimal Keyboard as your active input method</string>
+    <string name="keyboard_active_status">Keyboard is active and ready to type!</string>
+    <string name="keyboard_not_enabled_status">Keyboard is not yet enabled</string>
+    <string name="keyboard_enabled_not_selected">Keyboard is enabled. Tap below to select it.</string>
+
+    <string name="test_field_hint">Tap here to test typing…</string>
+    <string name="test_password_hint">Test password field…</string>
+    <string name="test_multiline_hint">Test multiline notes…</string>
+
+    <string name="privacy_title">Zero-Data Privacy Architecture</string>
+    <string name="privacy_body">Minimal Keyboard is strictly offline. It requests no INTERNET permission, stores no typing history, transmits no keystrokes, and contains no analytics or advertising SDKs. What you type stays entirely on your screen.</string>
+
+    <string name="font_attribution_title">Typography &amp; Attribution</string>
+    <string name="font_attribution_body">Rendered with Vazirmatn (وزیرمتن) by Saber Rastikerdar, licensed under the SIL Open Font License 1.1. Native RTL/LTR shaping and glyph metrics are preserved.</string>
+</resources>
