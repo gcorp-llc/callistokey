@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Minimal Keyboard"
+rootProject.name = "CallistoKey"
 
 include(":app")

@@ -3,13 +3,14 @@ package com.example.ime
 import android.graphics.RectF
 
 /**
- * Active layout modes supported by the Minimal Keyboard.
+ * Active layout modes supported by CallistoKey.
  */
 enum class KeyboardMode {
-    EN_ALPHA,   // English QWERTY
-    FA_ALPHA,   // Persian standard PC layout
-    NUMERIC,    // Classic 3x4 telephone keypad
-    SYMBOLS     // Punctuation and symbols layout
+    EN_ALPHA,         // English QWERTY
+    FA_ALPHA,         // Persian standard PC layout
+    NUMERIC,          // Classic 3x4 telephone keypad
+    SYMBOLS,          // Primary symbols & punctuation layout
+    SYMBOLS_EXTENDED  // Extended Persian & mathematical marks layout
 }
 
 /**
@@ -30,20 +31,21 @@ enum class KeyType {
     BACKSPACE,
     ENTER,
     SHIFT,
-    MODE_SWITCH,         // Switch to 123, SYM, or ABC
-    LANGUAGE_SWITCH,     // Switch between Persian and English
-    ZWNJ,                // Persian zero-width non-joiner (\u200C)
+    MODE_SWITCH,          // Switch to 123, SYM, SYM_EXT, or ABC
+    LANGUAGE_SWITCH,      // Switch between Persian and English
+    ZWNJ,                 // Persian zero-width non-joiner (\u200C)
     NUMERIC_SCRIPT_TOGGLE // Toggle between Western 123 and Persian ۱۲۳
 }
 
 /**
- * Data model for a single key on the keyboard.
+ * Data model for a single key on CallistoKey.
  */
 data class KeyModel(
     val type: KeyType,
     var label: String,
     val output: String = label,
-    val subLabel: String? = null,
+    val hintLabel: String? = null,
+    val altOutputs: List<String> = emptyList(),
     val weight: Float = 1.0f,
     val isSpecial: Boolean = false,
     val bounds: RectF = RectF(),

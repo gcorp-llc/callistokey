@@ -1,6 +1,6 @@
 {
-  "name": "Minimal Keyboard",
-  "description": "Minimal, fast, private Persian & English Android IME keyboard with classic numeric keypad and GitHub Dark styling.",
+  "name": "CallistoKey",
+  "description": "CallistoKey — Modern, ultra-fast Persian & English Android IME keyboard with smart spell correction, sentence prediction, swipe-to-switch spacebar, and local privacy controls.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
