@@ -38,12 +38,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Swipe
 import androidx.compose.material.icons.outlined.Book
@@ -57,7 +55,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -69,8 +66,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -104,6 +99,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.KeyboardPreferences
 import com.example.ui.CallistoUiState
 import com.example.ui.CallistoViewModel
+import com.example.ui.LiveKeyboardPreviewCard
+import com.example.ui.SettingsAndPrivacyScreen
+import com.example.ui.theme.CallistoSuccess
+import com.example.ui.theme.CallistoTeal
+import com.example.ui.theme.CallistoViolet
 import com.example.ui.theme.GitHubAccent
 import com.example.ui.theme.GitHubBorder
 import com.example.ui.theme.GitHubDarkTheme
@@ -112,28 +112,49 @@ import com.example.ui.theme.GitHubMainBackground
 import com.example.ui.theme.GitHubPrimaryText
 import com.example.ui.theme.GitHubSecondaryText
 import com.example.ui.theme.GitHubSurface
+import com.example.ui.theme.GitHubSurfaceElevated
 
 class MainActivity : ComponentActivity() {
 
+    private var requestedTab by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedTab = intent?.getIntExtra("open_tab", 0) ?: 0
         enableEdgeToEdge()
         setContent {
             GitHubDarkTheme {
-                CallistoCompanionApp()
+                CallistoCompanionApp(initialTab = requestedTab)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val tab = intent.getIntExtra("open_tab", -1)
+        if (tab in 0..2) {
+            requestedTab = tab
         }
     }
 }
 
 @Composable
-fun CallistoCompanionApp(vm: CallistoViewModel = viewModel()) {
+fun CallistoCompanionApp(
+    initialTab: Int = 0,
+    vm: CallistoViewModel = viewModel()
+) {
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
     var showAddWordDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialTab) {
+        if (initialTab in 0..2) {
+            selectedTab = initialTab
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -184,11 +205,11 @@ fun CallistoCompanionApp(vm: CallistoViewModel = viewModel()) {
                             contentDescription = "Setup"
                         )
                     },
-                    label = { Text("کیبورد", fontSize = 11.sp, maxLines = 1) },
+                    label = { Text("استودیو", fontSize = 11.sp, maxLines = 1) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = GitHubAccent,
                         selectedTextColor = GitHubAccent,
-                        indicatorColor = Color(0xFF1C3454),
+                        indicatorColor = Color(0xFF193458),
                         unselectedIconColor = GitHubSecondaryText,
                         unselectedTextColor = GitHubSecondaryText
                     ),
@@ -210,7 +231,7 @@ fun CallistoCompanionApp(vm: CallistoViewModel = viewModel()) {
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = GitHubAccent,
                         selectedTextColor = GitHubAccent,
-                        indicatorColor = Color(0xFF1C3454),
+                        indicatorColor = Color(0xFF193458),
                         unselectedIconColor = GitHubSecondaryText,
                         unselectedTextColor = GitHubSecondaryText
                     ),
@@ -232,7 +253,7 @@ fun CallistoCompanionApp(vm: CallistoViewModel = viewModel()) {
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = GitHubAccent,
                         selectedTextColor = GitHubAccent,
-                        indicatorColor = Color(0xFF1C3454),
+                        indicatorColor = Color(0xFF193458),
                         unselectedIconColor = GitHubSecondaryText,
                         unselectedTextColor = GitHubSecondaryText
                     ),
@@ -266,6 +287,9 @@ fun CallistoCompanionApp(vm: CallistoViewModel = viewModel()) {
                         onKeyPreviewChanged = vm::setKeyPreview,
                         onHapticChanged = vm::setHaptic,
                         onSoundChanged = vm::setSound,
+                        onPersianDigitsChanged = vm::setUsePersianDigits,
+                        onHeightModeChanged = vm::setKeyboardHeightMode,
+                        onLongPressDelayChanged = vm::setLongPressDelayMs,
                         onClearHistory = vm::clearTypingHistoryOnly,
                         onClearAll = vm::clearAllLearnedData
                     )
@@ -296,29 +320,29 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Modern Hero Banner
+        // Hero Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFF161B22), Color(0xFF1A2433))
+                        colors = listOf(Color(0xFF131921), Color(0xFF172436))
                     )
                 )
-                .border(1.dp, GitHubBorder, RoundedCornerShape(16.dp))
+                .border(1.dp, GitHubBorder, RoundedCornerShape(18.dp))
                 .padding(18.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(54.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF1C3454))
-                        .border(1.dp, GitHubAccent.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(Color(0xFF193458))
+                        .border(1.dp, GitHubAccent.copy(alpha = 0.55f), RoundedCornerShape(15.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -337,8 +361,8 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
                         color = GitHubPrimaryText
                     )
                     Text(
-                        text = "کیبورد هوشمند و سریع فارسی و انگلیسی",
-                        fontSize = 13.sp,
+                        text = "کیبورد دقیق، سریع و مدرن فارسی و انگلیسی",
+                        fontSize = 12.5.sp,
                         color = GitHubSecondaryText
                     )
                 }
@@ -348,21 +372,21 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
         // Live Activation Status Pill
         StatusBadgeCard(isEnabled = uiState.isEnabled, isSelected = uiState.isSelected)
 
-        // Activation Buttons
+        // Activation Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("setup_card"),
             colors = CardDefaults.cardColors(containerColor = GitHubSurface),
             border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "راه‌اندازی سریع",
+                    text = "راه‌اندازی دو مرحله‌ای",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = GitHubPrimaryText
@@ -380,7 +404,7 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
                         containerColor = if (uiState.isEnabled) GitHubKeyBackground else GitHubAccent,
                         contentColor = if (uiState.isEnabled) GitHubPrimaryText else Color.Black
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = if (uiState.isEnabled) Icons.Default.CheckCircle else Icons.Default.Settings,
@@ -407,7 +431,7 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
                         contentColor = if (uiState.isSelected) GitHubAccent else GitHubPrimaryText
                     ),
                     border = BorderStroke(1.dp, if (uiState.isSelected) GitHubAccent else GitHubBorder),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = if (uiState.isSelected) Icons.Default.CheckCircle else Icons.Default.Keyboard,
@@ -423,60 +447,51 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
             }
         }
 
-        // Key Highlights (Swipe Spacebar, Symbols, Spell Check)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "امکانات کلیدی CallistoKey",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
-                FeatureGuideRow(
-                    icon = Icons.Default.Swipe,
-                    title = "تغییر زبان با سوایپ Space",
-                    subtitle = "انگشت خود را روی دکمه فاصله به چپ یا راست بکشید تا زبان فوراً تغییر کند."
-                )
-                FeatureGuideRow(
-                    icon = Icons.Default.AutoAwesome,
-                    title = "اصلاح املا و پیشنهاد جملات",
-                    subtitle = "پیشنهاد کلمه بعدی، اصلاح خودکار غلط املایی و یادگیری کلمات پرتکرار شما."
-                )
-                FeatureGuideRow(
-                    icon = Icons.Default.Keyboard,
-                    title = "دسترسی سریع به علامت‌ها و اعداد",
-                    subtitle = "دکمه اختصاصی سیمبول‌ها (!#? / ؟#؛)، صفحه‌کلید عددی ۳×۴ تلفن و نگه داشتن حروف ردیف بالا برای اعداد."
-                )
-            }
-        }
+        // Live Keyboard Preview
+        LiveKeyboardPreviewCard(
+            heightMode = uiState.keyboardHeightMode,
+            showSuggestions = uiState.spellCheckEnabled || uiState.sentenceSuggestionsEnabled
+        )
 
-        // Live Typing Playground
+        // Live Interactive Typing Playground
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("test_area_card"),
             colors = CardDefaults.cardColors(containerColor = GitHubSurface),
             border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "محیط تست زنده تایپ",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "آزمایشگاه تایپ زنده",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GitHubPrimaryText
+                    )
+                    if (testText.isNotEmpty() || testPhone.isNotEmpty() || testPassword.isNotEmpty()) {
+                        TextButton(
+                            onClick = {
+                                testText = ""
+                                testPhone = ""
+                                testPassword = ""
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, tint = GitHubSecondaryText, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("پاک کردن", fontSize = 11.5.sp, color = GitHubSecondaryText)
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = testText,
                     onValueChange = { testText = it },
@@ -512,6 +527,36 @@ fun SetupAndPlaygroundScreen(uiState: CallistoUiState) {
                 )
             }
         }
+
+        // Highlights
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
+            border = BorderStroke(1.dp, GitHubBorder),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "امکانات کلیدی CallistoKey",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = GitHubPrimaryText
+                )
+                FeatureGuideRow(
+                    icon = Icons.Default.Swipe,
+                    title = "تغییر زبان با سوایپ Space",
+                    subtitle = "انگشت خود را روی دکمه فاصله به چپ یا راست بکشید تا زبان فوراً تغییر کند."
+                )
+                FeatureGuideRow(
+                    icon = Icons.Default.AutoAwesome,
+                    title = "دقت تاچ صفر-نقطه-کور + اصلاح املا",
+                    subtitle = "تمام سطح کیبورد بدون فضای خالی مرده لمس را ثبت می‌کند و غلط املایی را اصلاح می‌نماید."
+                )
+            }
+        }
     }
 }
 
@@ -523,7 +568,7 @@ fun DictionaryScreen(
     onDeleteWord: (String, String) -> Unit,
     onDeletePhrase: (String, String, String) -> Unit
 ) {
-    var subTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Words, 1 = Phrases
+    var subTab by rememberSaveable { mutableIntStateOf(0) }
 
     Column(
         modifier = Modifier
@@ -538,20 +583,30 @@ fun DictionaryScreen(
             color = GitHubPrimaryText
         )
 
-        // Storage summary strip
+        // Bento Stats Cards
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(GitHubSurface)
-                .border(1.dp, GitHubBorder, RoundedCornerShape(12.dp))
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            StatItem(label = "کلمات آموخته", value = "${uiState.storageStats.learnedWordsCount}")
-            StatItem(label = "الگوهای جمله", value = "${uiState.storageStats.learnedPhrasesCount}")
+            BentoStatCard(
+                label = "کلمات آموخته",
+                value = "${uiState.storageStats.learnedWordsCount}",
+                accent = GitHubAccent,
+                modifier = Modifier.weight(1f)
+            )
+            BentoStatCard(
+                label = "الگوهای جمله",
+                value = "${uiState.storageStats.learnedPhrasesCount}",
+                accent = CallistoViolet,
+                modifier = Modifier.weight(1f)
+            )
             val kb = String.format("%.1f KB", uiState.storageStats.databaseSizeBytes / 1024f)
-            StatItem(label = "حجم حافظه", value = kb)
+            BentoStatCard(
+                label = "حجم حافظه",
+                value = kb,
+                accent = CallistoTeal,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         // Sub-tabs: Words vs Phrases
@@ -575,7 +630,6 @@ fun DictionaryScreen(
             )
         }
 
-        // Search & Language Filter
         if (subTab == 0) {
             OutlinedTextField(
                 value = uiState.searchQuery,
@@ -615,9 +669,9 @@ fun DictionaryScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(GitHubSurface)
-                                .border(1.dp, GitHubBorder, RoundedCornerShape(10.dp))
+                                .border(1.dp, GitHubBorder, RoundedCornerShape(12.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -663,9 +717,9 @@ fun DictionaryScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(GitHubSurface)
-                                .border(1.dp, GitHubBorder, RoundedCornerShape(10.dp))
+                                .border(1.dp, GitHubBorder, RoundedCornerShape(12.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -701,282 +755,23 @@ fun DictionaryScreen(
 }
 
 @Composable
-fun SettingsAndPrivacyScreen(
-    uiState: CallistoUiState,
-    onSpellCheckChanged: (Boolean) -> Unit,
-    onAutoCorrectChanged: (Boolean) -> Unit,
-    onSentenceSuggestionsChanged: (Boolean) -> Unit,
-    onLearningChanged: (Boolean) -> Unit,
-    onKeyPreviewChanged: (Boolean) -> Unit,
-    onHapticChanged: (Boolean) -> Unit,
-    onSoundChanged: (Boolean) -> Unit,
-    onClearHistory: () -> Unit,
-    onClearAll: () -> Unit
+private fun BentoStatCard(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
 ) {
-    var confirmAction by remember { mutableStateOf<String?>(null) } // "history" or "all"
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(GitHubSurface)
+            .border(1.dp, GitHubBorder, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = "تنظیمات و حریم خصوصی",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = GitHubPrimaryText
-        )
-
-        // Smart Typing Toggles
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "هوش تایپ و پیشنهادها",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingToggleRow(
-                    title = "اصلاح غلط املایی",
-                    subtitle = "تشخیص خطاهای تایپی و نمایش اصلاحات فارسی و انگلیسی",
-                    checked = uiState.spellCheckEnabled,
-                    onCheckedChange = onSpellCheckChanged,
-                    testTag = "toggle_spell_check"
-                )
-                HorizontalDivider(color = GitHubBorder, modifier = Modifier.padding(vertical = 6.dp))
-                SettingToggleRow(
-                    title = "اصلاح خودکار با دکمه فاصله",
-                    subtitle = "تصحیح خودکار کلمات اشتباه هنگام زدن Space (با قابلیت برگشت با Backspace)",
-                    checked = uiState.autoCorrectEnabled,
-                    onCheckedChange = onAutoCorrectChanged,
-                    testTag = "toggle_auto_correct"
-                )
-                HorizontalDivider(color = GitHubBorder, modifier = Modifier.padding(vertical = 6.dp))
-                SettingToggleRow(
-                    title = "پیشنهاد جملات و کلمه بعدی",
-                    subtitle = "نمایش عبارات پرکاربرد و پیش‌بینی ادامه جمله در نوار بالا",
-                    checked = uiState.sentenceSuggestionsEnabled,
-                    onCheckedChange = onSentenceSuggestionsChanged,
-                    testTag = "toggle_sentence_suggestions"
-                )
-                HorizontalDivider(color = GitHubBorder, modifier = Modifier.padding(vertical = 6.dp))
-                SettingToggleRow(
-                    title = "یادگیری کلمات پرتکرار و ذخیره‌سازی",
-                    subtitle = "ذخیره محلی کلمات و عبارات پرتکرار شما برای دقت بیشتر",
-                    checked = uiState.learningEnabled,
-                    onCheckedChange = onLearningChanged,
-                    testTag = "toggle_learning"
-                )
-            }
-        }
-
-        // Ergonomics & Speed Toggles
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "ظاهر و بازخورد تایپ",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingToggleRow(
-                    title = "پیش‌نمایش شناور کلید",
-                    subtitle = "نمایش بزرگ حرف لمس شده بالای کلید",
-                    checked = uiState.keyPreviewEnabled,
-                    onCheckedChange = onKeyPreviewChanged,
-                    testTag = "toggle_key_preview"
-                )
-                HorizontalDivider(color = GitHubBorder, modifier = Modifier.padding(vertical = 6.dp))
-                SettingToggleRow(
-                    title = "بازخورد لرزشی (Haptic)",
-                    subtitle = "لرزش سریع و ملایم هنگام لمس کلیدها",
-                    checked = uiState.hapticEnabled,
-                    onCheckedChange = onHapticChanged,
-                    testTag = "toggle_haptic"
-                )
-                HorizontalDivider(color = GitHubBorder, modifier = Modifier.padding(vertical = 6.dp))
-                SettingToggleRow(
-                    title = "صدای کلیدها",
-                    subtitle = "پخش صدای ملایم کلیک سیستم هنگام تایپ",
-                    checked = uiState.soundEnabled,
-                    onCheckedChange = onSoundChanged,
-                    testTag = "toggle_sound"
-                )
-            }
-        }
-
-        // History & Storage Deletion Controls
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("storage_management_card"),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, Color(0xFF5A2A2E)),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "مدیریت تاریخچه و حافظه ذخیره‌سازی",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
-                Text(
-                    text = "کلمات آموخته شده: ${uiState.storageStats.learnedWordsCount}  •  الگوهای جمله: ${uiState.storageStats.learnedPhrasesCount}",
-                    fontSize = 12.sp,
-                    color = GitHubSecondaryText
-                )
-
-                OutlinedButton(
-                    onClick = { confirmAction = "history" },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("clear_history_button"),
-                    border = BorderStroke(1.dp, Color(0xFFD29922)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD29922)),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("حذف تاریخچه جملات و الگوهای تایپ", fontSize = 13.sp)
-                }
-
-                Button(
-                    onClick = { confirmAction = "all" },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("wipe_all_storage_button"),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3E1D21),
-                        contentColor = Color(0xFFFF7B72)
-                    ),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("حذف کامل تاریخچه تایپ و دانشنامه ذخیره شده", fontSize = 13.sp)
-                }
-            }
-        }
-
-        // Privacy & Font Attribution
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("privacy_card"),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                Icon(
-                    imageVector = Icons.Default.Security,
-                    contentDescription = "Privacy",
-                    tint = GitHubAccent,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.privacy_title),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = GitHubPrimaryText
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.privacy_body),
-                        fontSize = 12.sp,
-                        color = GitHubSecondaryText,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("attribution_card"),
-            colors = CardDefaults.cardColors(containerColor = GitHubSurface),
-            border = BorderStroke(1.dp, GitHubBorder),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(R.string.font_attribution_title),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GitHubPrimaryText
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.font_attribution_body),
-                    fontSize = 12.sp,
-                    color = GitHubSecondaryText,
-                    lineHeight = 18.sp
-                )
-            }
-        }
-    }
-
-    if (confirmAction != null) {
-        val isAll = confirmAction == "all"
-        AlertDialog(
-            onDismissRequest = { confirmAction = null },
-            containerColor = GitHubSurface,
-            titleContentColor = GitHubPrimaryText,
-            textContentColor = GitHubSecondaryText,
-            title = {
-                Text(
-                    text = if (isAll) "حذف کامل دانشنامه و حافظه؟" else "حذف تاریخچه جملات؟",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = if (isAll) {
-                        "تمامی کلمات پرتکرار ذخیره شده، الگوهای جملات و پایگاه داده محلی پاک خواهند شد. این عمل قابل بازگشت نیست."
-                    } else {
-                        "تاریخچه ارتباط کلمات و پیشنهادهای جمله‌سازی پاک می‌شود، اما کلمات تکی دانشنامه حفظ می‌شوند."
-                    }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (isAll) onClearAll() else onClearHistory()
-                        confirmAction = null
-                    }
-                ) {
-                    Text("تایید و حذف", color = Color(0xFFFF7B72), fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmAction = null }) {
-                    Text("انصراف", color = GitHubPrimaryText)
-                }
-            }
-        )
+        Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = accent)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = label, fontSize = 11.sp, color = GitHubSecondaryText, maxLines = 1)
     }
 }
 
@@ -990,7 +785,7 @@ fun AddCustomWordDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = GitHubSurface,
+        containerColor = GitHubSurfaceElevated,
         titleContentColor = GitHubPrimaryText,
         title = { Text("افزودن کلمه به دانشنامه", fontWeight = FontWeight.Bold) },
         text = {
@@ -1037,7 +832,7 @@ fun AddCustomWordDialog(
 @Composable
 fun StatusBadgeCard(isEnabled: Boolean, isSelected: Boolean) {
     val (statusText, badgeColor) = when {
-        isSelected -> "CallistoKey فعال و پیش‌فرض سیستم است" to Color(0xFF3FB950)
+        isSelected -> "CallistoKey فعال و پیش‌فرض سیستم است" to CallistoSuccess
         isEnabled -> "کیبورد فعال شد • مرحله ۲ (انتخاب) را انجام دهید" to GitHubAccent
         else -> "کیبورد هنوز در تنظیمات اندروید فعال نشده است" to GitHubSecondaryText
     }
@@ -1045,9 +840,9 @@ fun StatusBadgeCard(isEnabled: Boolean, isSelected: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(GitHubSurface)
-            .border(1.dp, GitHubBorder, RoundedCornerShape(10.dp))
+            .border(1.dp, GitHubBorder, RoundedCornerShape(12.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp)
             .testTag("status_badge_box")
     ) {
@@ -1093,47 +888,6 @@ private fun FeatureGuideRow(
 }
 
 @Composable
-private fun SettingToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    testTag: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = GitHubPrimaryText)
-            Text(text = subtitle, fontSize = 11.5.sp, color = GitHubSecondaryText, lineHeight = 16.sp)
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.testTag(testTag),
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = GitHubAccent,
-                uncheckedThumbColor = GitHubSecondaryText,
-                uncheckedTrackColor = GitHubKeyBackground,
-                uncheckedBorderColor = GitHubBorder
-            )
-        )
-    }
-}
-
-@Composable
-private fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = GitHubAccent)
-        Text(text = label, fontSize = 11.sp, color = GitHubSecondaryText)
-    }
-}
-
-@Composable
 private fun EmptyDictionaryState(message: String) {
     Box(
         modifier = Modifier
@@ -1174,7 +928,7 @@ private fun callistoFieldColors() = OutlinedTextFieldDefaults.colors(
 
 @Composable
 private fun callistoChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = Color(0xFF1C3454),
+    selectedContainerColor = Color(0xFF193458),
     selectedLabelColor = GitHubAccent,
     containerColor = GitHubSurface,
     labelColor = GitHubSecondaryText

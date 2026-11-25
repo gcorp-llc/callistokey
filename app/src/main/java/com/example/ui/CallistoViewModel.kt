@@ -28,6 +28,9 @@ data class CallistoUiState(
     val keyPreviewEnabled: Boolean = true,
     val hapticEnabled: Boolean = true,
     val soundEnabled: Boolean = false,
+    val usePersianDigits: Boolean = false,
+    val keyboardHeightMode: String = KeyboardPreferences.HEIGHT_NORMAL,
+    val longPressDelayMs: Int = 310,
     val searchQuery: String = "",
     val languageFilter: String = "all",
     val learnedWords: List<LearnedWordEntry> = emptyList(),
@@ -63,7 +66,10 @@ class CallistoViewModel(application: Application) : AndroidViewModel(application
                 learningEnabled = prefs.learningEnabled,
                 keyPreviewEnabled = prefs.keyPreviewEnabled,
                 hapticEnabled = prefs.hapticEnabled,
-                soundEnabled = prefs.soundEnabled
+                soundEnabled = prefs.soundEnabled,
+                usePersianDigits = prefs.usePersianDigits,
+                keyboardHeightMode = prefs.keyboardHeightMode,
+                longPressDelayMs = prefs.longPressDelayMs
             )
         }
         loadDictionaryData()
@@ -130,6 +136,21 @@ class CallistoViewModel(application: Application) : AndroidViewModel(application
     fun setSound(enabled: Boolean) {
         prefs.soundEnabled = enabled
         _uiState.update { it.copy(soundEnabled = enabled) }
+    }
+
+    fun setUsePersianDigits(enabled: Boolean) {
+        prefs.usePersianDigits = enabled
+        _uiState.update { it.copy(usePersianDigits = enabled) }
+    }
+
+    fun setKeyboardHeightMode(mode: String) {
+        prefs.keyboardHeightMode = mode
+        _uiState.update { it.copy(keyboardHeightMode = mode) }
+    }
+
+    fun setLongPressDelayMs(delayMs: Int) {
+        prefs.longPressDelayMs = delayMs
+        _uiState.update { it.copy(longPressDelayMs = delayMs) }
     }
 
     fun addCustomWord(word: String, lang: String) {

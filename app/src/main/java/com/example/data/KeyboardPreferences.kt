@@ -44,14 +44,18 @@ class KeyboardPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_PERSIAN_DIGITS, false)
         set(value) = prefs.edit().putBoolean(KEY_PERSIAN_DIGITS, value).apply()
 
+    var keyboardHeightMode: String
+        get() = prefs.getString(KEY_HEIGHT_MODE, HEIGHT_NORMAL) ?: HEIGHT_NORMAL
+        set(value) = prefs.edit().putString(KEY_HEIGHT_MODE, value).apply()
+
+    var longPressDelayMs: Int
+        get() = prefs.getInt(KEY_LONG_PRESS_MS, 310)
+        set(value) = prefs.edit().putInt(KEY_LONG_PRESS_MS, value).apply()
+
     var lastLanguage: String
         get() = prefs.getString(KEY_LAST_LANGUAGE, LANG_EN) ?: LANG_EN
         set(value) = prefs.edit().putString(KEY_LAST_LANGUAGE, value).apply()
 
-    /**
-     * Incremented whenever the user clears dictionary/history from the companion app
-     * so the running IME service immediately refreshes its in-memory cache.
-     */
     var dictionaryEpoch: Long
         get() = prefs.getLong(KEY_DICT_EPOCH, 0L)
         private set(value) = prefs.edit().putLong(KEY_DICT_EPOCH, value).apply()
@@ -73,6 +77,10 @@ class KeyboardPreferences(context: Context) {
         const val LANG_EN = "en"
         const val LANG_FA = "fa"
 
+        const val HEIGHT_COMPACT = "compact"
+        const val HEIGHT_NORMAL = "normal"
+        const val HEIGHT_TALL = "tall"
+
         const val KEY_SPELL_CHECK = "spell_check_enabled"
         const val KEY_AUTO_CORRECT = "auto_correct_enabled"
         const val KEY_SENTENCE_SUGGESTIONS = "sentence_suggestions_enabled"
@@ -81,6 +89,8 @@ class KeyboardPreferences(context: Context) {
         const val KEY_HAPTIC = "haptic_enabled"
         const val KEY_SOUND = "sound_enabled"
         const val KEY_PERSIAN_DIGITS = "use_persian_digits"
+        const val KEY_HEIGHT_MODE = "keyboard_height_mode"
+        const val KEY_LONG_PRESS_MS = "long_press_delay_ms"
         const val KEY_LAST_LANGUAGE = "last_language"
         const val KEY_DICT_EPOCH = "dictionary_epoch"
     }

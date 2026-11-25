@@ -1,6 +1,15 @@
 package com.example.ime
 
 /**
+ * Metadata for a keyboard row, supporting staggered horizontal visual insets
+ * (such as QWERTY middle row) while keeping edge hitboxes full-width.
+ */
+data class KeyRow(
+    val keys: List<KeyModel>,
+    val horizontalInsetWeight: Float = 0f
+)
+
+/**
  * Constructs rows of keys for each supported CallistoKey layout mode and state.
  */
 object KeyboardLayout {
@@ -12,6 +21,16 @@ object KeyboardLayout {
         enterLabel: String,
         lastAlphaMode: KeyboardMode = KeyboardMode.EN_ALPHA
     ): List<List<KeyModel>> {
+        return buildRowLayout(mode, shiftState, usePersianDigits, enterLabel, lastAlphaMode).map { it.keys }
+    }
+
+    fun buildRowLayout(
+        mode: KeyboardMode,
+        shiftState: ShiftState,
+        usePersianDigits: Boolean,
+        enterLabel: String,
+        lastAlphaMode: KeyboardMode = KeyboardMode.EN_ALPHA
+    ): List<KeyRow> {
         return when (mode) {
             KeyboardMode.EN_ALPHA -> buildEnglishLayout(shiftState, enterLabel)
             KeyboardMode.FA_ALPHA -> buildPersianLayout(enterLabel)
@@ -21,7 +40,7 @@ object KeyboardLayout {
         }
     }
 
-    private fun buildEnglishLayout(shift: ShiftState, enterLabel: String): List<List<KeyModel>> {
+    private fun buildEnglishLayout(shift: ShiftState, enterLabel: String): List<KeyRow> {
         val isUpper = shift != ShiftState.OFF
         val row1Chars = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
         val row1Digits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
@@ -66,7 +85,6 @@ object KeyboardLayout {
         }
         row3.add(KeyModel(KeyType.BACKSPACE, "BACKSPACE", isSpecial = true, weight = 1.45f))
 
-        // Bottom control row with direct 123, Symbols (!#?), comma, Swipeable Spacebar, period, Enter
         val row4 = listOf(
             KeyModel(KeyType.MODE_SWITCH, "123", output = "NUMERIC", isSpecial = true, weight = 1.25f),
             KeyModel(KeyType.MODE_SWITCH, "!#?", output = "SYMBOLS", isSpecial = true, weight = 1.2f),
@@ -76,10 +94,15 @@ object KeyboardLayout {
             KeyModel(KeyType.ENTER, enterLabel, "\n", isSpecial = true, weight = 1.55f)
         )
 
-        return listOf(row1, row2, row3, row4)
+        return listOf(
+            KeyRow(row1),
+            KeyRow(row2, horizontalInsetWeight = 0.45f), // Authentic staggered QWERTY visual alignment
+            KeyRow(row3),
+            KeyRow(row4)
+        )
     }
 
-    private fun buildPersianLayout(enterLabel: String): List<List<KeyModel>> {
+    private fun buildPersianLayout(enterLabel: String): List<KeyRow> {
         val row1Chars = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "چ")
         val row1Digits = listOf("۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۰", null, null)
         val row2Chars = listOf("ش", "س", "ی", "ب", "ل", "ا", "ت", "ن", "م", "ک", "گ")
@@ -89,9 +112,7 @@ object KeyboardLayout {
             val digit = row1Digits[idx]
             val alts = buildList {
                 if (digit != null) add(digit)
-                when (ch) {
-                    "ه" -> addAll(listOf("ة", "ۀ"))
-                }
+                if (ch == "ه") addAll(listOf("ة", "ۀ"))
             }
             KeyModel(KeyType.CHARACTER, ch, ch, hintLabel = digit, altOutputs = alts)
         }
@@ -107,17 +128,13 @@ object KeyboardLayout {
         }
 
         val row3 = mutableListOf<KeyModel>()
-        row3.add(KeyModel(KeyType.ZWNJ, "ZWNJ", "\u200C", isSpecial = true, weight = 1.25f))
+        row3.add(KeyModel(KeyType.ZWNJ, "ZWNJ", "\u200C", isSpecial = true, weight = 1.2f))
         for (ch in row3Chars) {
-            val alts = when (ch) {
-                "و" -> listOf("ؤ")
-                else -> emptyList()
-            }
+            val alts = if (ch == "و") listOf("ؤ") else emptyList()
             row3.add(KeyModel(KeyType.CHARACTER, ch, ch, altOutputs = alts))
         }
-        row3.add(KeyModel(KeyType.BACKSPACE, "BACKSPACE", isSpecial = true, weight = 1.35f))
+        row3.add(KeyModel(KeyType.BACKSPACE, "BACKSPACE", isSpecial = true, weight = 1.3f))
 
-        // Bottom control row with direct ۱۲۳, Symbols (؟#؛), comma, Swipeable Spacebar, period, Enter
         val row4 = listOf(
             KeyModel(KeyType.MODE_SWITCH, "۱۲۳", output = "NUMERIC", isSpecial = true, weight = 1.25f),
             KeyModel(KeyType.MODE_SWITCH, "؟#؛", output = "SYMBOLS", isSpecial = true, weight = 1.2f),
@@ -127,14 +144,19 @@ object KeyboardLayout {
             KeyModel(KeyType.ENTER, enterLabel, "\n", isSpecial = true, weight = 1.55f)
         )
 
-        return listOf(row1, row2, row3, row4)
+        return listOf(
+            KeyRow(row1),
+            KeyRow(row2, horizontalInsetWeight = 0.2f),
+            KeyRow(row3),
+            KeyRow(row4)
+        )
     }
 
     private fun buildNumericLayout(
         usePersianDigits: Boolean,
         enterLabel: String,
         lastAlphaMode: KeyboardMode
-    ): List<List<KeyModel>> {
+    ): List<KeyRow> {
         val d0 = if (usePersianDigits) "۰" else "0"
         val d1 = if (usePersianDigits) "۱" else "1"
         val d2 = if (usePersianDigits) "۲" else "2"
@@ -149,7 +171,6 @@ object KeyboardLayout {
         val toggleLabel = if (usePersianDigits) "123" else "۱۲۳"
         val alphaLabel = if (lastAlphaMode == KeyboardMode.FA_ALPHA) "فارسی" else "ABC"
 
-        // Classic 3x4 Telephone Keypad flanked by utility/math keys
         val row1 = listOf(
             KeyModel(KeyType.CHARACTER, "+", "+", weight = 1.1f, isSpecial = true),
             KeyModel(KeyType.CHARACTER, d1, d1, weight = 2.0f),
@@ -182,13 +203,13 @@ object KeyboardLayout {
             KeyModel(KeyType.ENTER, enterLabel, "\n", isSpecial = true, weight = 1.3f)
         )
 
-        return listOf(row1, row2, row3, row4)
+        return listOf(KeyRow(row1), KeyRow(row2), KeyRow(row3), KeyRow(row4))
     }
 
     private fun buildSymbolsLayout(
         enterLabel: String,
         lastAlphaMode: KeyboardMode
-    ): List<List<KeyModel>> {
+    ): List<KeyRow> {
         val alphaLabel = if (lastAlphaMode == KeyboardMode.FA_ALPHA) "فارسی" else "ABC"
         val isPersian = lastAlphaMode == KeyboardMode.FA_ALPHA
 
@@ -240,13 +261,13 @@ object KeyboardLayout {
             KeyModel(KeyType.ENTER, enterLabel, "\n", isSpecial = true, weight = 1.5f)
         )
 
-        return listOf(row1, row2, row3, row4)
+        return listOf(KeyRow(row1), KeyRow(row2), KeyRow(row3), KeyRow(row4))
     }
 
     private fun buildExtendedSymbolsLayout(
         enterLabel: String,
         lastAlphaMode: KeyboardMode
-    ): List<List<KeyModel>> {
+    ): List<KeyRow> {
         val alphaLabel = if (lastAlphaMode == KeyboardMode.FA_ALPHA) "فارسی" else "ABC"
         val isPersian = lastAlphaMode == KeyboardMode.FA_ALPHA
 
@@ -298,6 +319,6 @@ object KeyboardLayout {
             KeyModel(KeyType.ENTER, enterLabel, "\n", isSpecial = true, weight = 1.5f)
         )
 
-        return listOf(row1, row2, row3, row4)
+        return listOf(KeyRow(row1), KeyRow(row2), KeyRow(row3), KeyRow(row4))
     }
 }

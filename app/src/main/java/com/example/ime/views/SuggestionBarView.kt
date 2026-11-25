@@ -15,12 +15,14 @@ import androidx.core.content.res.ResourcesCompat
 import com.example.R
 import com.example.ime.GitHubDarkPalette
 import com.example.ime.nlp.SuggestionChip
+import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.sin
 
 /**
- * High-speed native suggestion strip above the keyboard.
- * Renders spell corrections, phrase/sentence predictions, and quick language indicator
- * with zero per-frame allocations.
+ * High-speed native suggestion & quick-action bar above CallistoKey.
+ * Displays spell corrections, sentence/next-word predictions, quick language badge,
+ * and a 1-tap Settings shortcut with zero per-frame allocations.
  */
 class SuggestionBarView @JvmOverloads constructor(
     context: Context,
@@ -31,6 +33,7 @@ class SuggestionBarView @JvmOverloads constructor(
     interface OnSuggestionListener {
         fun onSuggestionClicked(chip: SuggestionChip)
         fun onLanguageBadgeClicked()
+        fun onSettingsIconClicked()
     }
 
     var listener: OnSuggestionListener? = null
@@ -40,11 +43,13 @@ class SuggestionBarView @JvmOverloads constructor(
     private var isSensitiveMode: Boolean = false
     private var activeLanguageTag: String = "EN"
 
-    // Pre-allocated hitboxes for up to 4 chips + 1 language badge
+    // Pre-allocated hitboxes for up to 4 chips + language badge + settings button
     private val chipRects = Array(4) { RectF() }
     private val langBadgeRect = RectF()
+    private val settingsRect = RectF()
     private var pressedChipIndex = -1
     private var pressedLangBadge = false
+    private var pressedSettings = false
 
     private val bgPaint = Paint().apply {
         style = Paint.Style.FILL
@@ -91,10 +96,16 @@ class SuggestionBarView @JvmOverloads constructor(
         color = GitHubDarkPalette.SECONDARY_TEXT
         textSize = dpToPx(12f)
     }
+    private val gearPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = dpToPx(1.5f)
+        strokeCap = Paint.Cap.ROUND
+        color = GitHubDarkPalette.SECONDARY_TEXT
+    }
 
     private val textBounds = Rect()
-    private val pillRadius = dpToPx(8f)
-    private val badgeRadius = dpToPx(7f)
+    private val pillRadius = dpToPx(9f)
+    private val badgeRadius = dpToPx(8f)
     private val padH = dpToPx(6f)
     private val padV = dpToPx(5f)
     private val gap = dpToPx(5f)
@@ -133,7 +144,7 @@ class SuggestionBarView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        val h = dpToPx(42f).toInt()
+        val h = dpToPx(44f).toInt()
         setMeasuredDimension(w, resolveSize(h, heightMeasureSpec))
     }
 
@@ -147,13 +158,16 @@ class SuggestionBarView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val badgeW = dpToPx(48f)
-        langBadgeRect.set(w - padH - badgeW, padV, w - padH, h - padV)
+        val settingsW = dpToPx(34f)
+        val badgeW = dpToPx(42f)
+
+        settingsRect.set(w - padH - settingsW, padV, w - padH, h - padV)
+        langBadgeRect.set(settingsRect.left - gap - badgeW, padV, settingsRect.left - gap, h - padV)
 
         val count = chips.size
         if (count == 0) return
 
-        val chipsAreaWidth = w - (padH * 2) - badgeW - gap
+        val chipsAreaWidth = langBadgeRect.left - padH - gap
         val chipW = max(1f, (chipsAreaWidth - gap * (count - 1)) / count)
 
         var curX = padH
@@ -169,9 +183,16 @@ class SuggestionBarView @JvmOverloads constructor(
         val h = height.toFloat()
 
         canvas.drawRect(0f, 0f, w, h, bgPaint)
+        canvas.drawRect(0f, 0f, w, dpToPx(0.8f), dividerPaint)
         canvas.drawRect(0f, h - dpToPx(0.8f), w, h, dividerPaint)
 
-        // Draw right-side language switch badge
+        // Draw Settings quick button
+        val settingsFill = if (pressedSettings) pillPressedPaint else pillPaint
+        canvas.drawRoundRect(settingsRect, badgeRadius, badgeRadius, settingsFill)
+        canvas.drawRoundRect(settingsRect, badgeRadius, badgeRadius, pillBorderPaint)
+        drawSettingsGear(canvas, settingsRect.centerX(), settingsRect.centerY())
+
+        // Draw Language switch badge
         val badgeFill = if (pressedLangBadge) pillPressedPaint else pillPaint
         canvas.drawRoundRect(langBadgeRect, badgeRadius, badgeRadius, badgeFill)
         canvas.drawRoundRect(langBadgeRect, badgeRadius, badgeRadius, pillBorderPaint)
@@ -186,7 +207,7 @@ class SuggestionBarView @JvmOverloads constructor(
         )
 
         if (isSensitiveMode) {
-            val msg = "🔒 Private input • History & learning paused"
+            val msg = "🔒 Private input • Learning paused"
             secondaryTextPaint.textAlign = Paint.Align.LEFT
             secondaryTextPaint.getTextBounds(msg, 0, msg.length, textBounds)
             canvas.drawText(
@@ -229,7 +250,7 @@ class SuggestionBarView @JvmOverloads constructor(
             canvas.drawRoundRect(rect, pillRadius, pillRadius, border)
 
             val paint = if (chip.isCorrection) accentTextPaint else textPaint
-            paint.textSize = if (chip.text.length > 12) dpToPx(11.5f) else dpToPx(13.5f)
+            paint.textSize = if (chip.text.length > 11) dpToPx(11.5f) else dpToPx(13.5f)
 
             val label = ellipsizeText(chip.text, paint, rect.width() - dpToPx(10f))
             paint.getTextBounds(label, 0, label.length, textBounds)
@@ -239,6 +260,21 @@ class SuggestionBarView @JvmOverloads constructor(
                 rect.centerY() - textBounds.exactCenterY(),
                 paint
             )
+        }
+    }
+
+    private fun drawSettingsGear(canvas: Canvas, cx: Float, cy: Float) {
+        val innerR = dpToPx(3.2f)
+        val outerR = dpToPx(6.5f)
+        gearPaint.color = if (pressedSettings) GitHubDarkPalette.ACCENT else GitHubDarkPalette.SECONDARY_TEXT
+        canvas.drawCircle(cx, cy, innerR, gearPaint)
+        for (i in 0 until 6) {
+            val angle = Math.toRadians((i * 60).toDouble())
+            val sx = cx + (outerR * 0.72f * cos(angle)).toFloat()
+            val sy = cy + (outerR * 0.72f * sin(angle)).toFloat()
+            val ex = cx + (outerR * cos(angle)).toFloat()
+            val ey = cy + (outerR * sin(angle)).toFloat()
+            canvas.drawLine(sx, sy, ex, ey, gearPaint)
         }
     }
 
@@ -257,6 +293,11 @@ class SuggestionBarView @JvmOverloads constructor(
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                if (settingsRect.contains(x, y)) {
+                    pressedSettings = true
+                    invalidate()
+                    return true
+                }
                 if (langBadgeRect.contains(x, y)) {
                     pressedLangBadge = true
                     invalidate()
@@ -273,7 +314,10 @@ class SuggestionBarView @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_UP -> {
-                if (pressedLangBadge && langBadgeRect.contains(x, y)) {
+                if (pressedSettings && settingsRect.contains(x, y)) {
+                    if (hapticEnabled) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    listener?.onSettingsIconClicked()
+                } else if (pressedLangBadge && langBadgeRect.contains(x, y)) {
                     if (hapticEnabled) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     listener?.onLanguageBadgeClicked()
                 } else if (pressedChipIndex in chips.indices && chipRects[pressedChipIndex].contains(x, y)) {
@@ -282,11 +326,13 @@ class SuggestionBarView @JvmOverloads constructor(
                 }
                 pressedChipIndex = -1
                 pressedLangBadge = false
+                pressedSettings = false
                 invalidate()
             }
             MotionEvent.ACTION_CANCEL -> {
                 pressedChipIndex = -1
                 pressedLangBadge = false
+                pressedSettings = false
                 invalidate()
             }
         }

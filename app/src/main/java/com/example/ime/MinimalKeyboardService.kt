@@ -1,5 +1,6 @@
 package com.example.ime
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
@@ -8,6 +9,7 @@ import android.os.Looper
 import android.text.InputType
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import com.example.MainActivity
 import com.example.data.DictionaryRepository
 import com.example.data.KeyboardPreferences
 import com.example.ime.nlp.SuggestionChip
@@ -126,6 +128,8 @@ class MinimalKeyboardService : InputMethodService(),
         val container = containerView ?: return
         container.keyboardView.hapticEnabled = prefs.hapticEnabled
         container.keyboardView.keyPreviewEnabled = prefs.keyPreviewEnabled
+        container.keyboardView.longPressDelayMs = prefs.longPressDelayMs
+        container.keyboardView.heightMode = prefs.keyboardHeightMode
         container.keyboardView.setUsePersianDigits(prefs.usePersianDigits)
         container.suggestionBar.hapticEnabled = prefs.hapticEnabled
     }
@@ -304,6 +308,14 @@ class MinimalKeyboardService : InputMethodService(),
     override fun onLanguageBadgeClicked() {
         containerView?.keyboardView?.switchLanguage()
         onLanguageSwitch()
+    }
+
+    override fun onSettingsIconClicked() {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra("open_tab", 2)
+        }
+        startActivity(intent)
     }
 
     private fun refreshSuggestions() {

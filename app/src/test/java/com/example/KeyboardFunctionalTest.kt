@@ -25,6 +25,15 @@ class KeyboardFunctionalTest {
         assertEquals(4, layout.size)
 
         // Row 1: q..p with digit hints 1..0
+        val rowLayout = KeyboardLayout.buildRowLayout(
+            mode = KeyboardMode.EN_ALPHA,
+            shiftState = ShiftState.OFF,
+            usePersianDigits = false,
+            enterLabel = "ENTER_ICON"
+        )
+        assertEquals(0f, rowLayout[0].horizontalInsetWeight)
+        assertEquals(0.45f, rowLayout[1].horizontalInsetWeight)
+
         val row1 = layout[0]
         assertEquals(10, row1.size)
         assertEquals("q", row1[0].output)

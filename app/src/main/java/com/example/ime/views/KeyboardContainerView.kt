@@ -153,12 +153,20 @@ class KeyboardContainerView @JvmOverloads constructor(
         altBoxRect.set(left, top, left + boxW, bottom)
     }
 
+    private val popupShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = android.graphics.Color.argb(120, 0, 0, 0)
+    }
+
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
 
         // Draw floating alternates strip if active
         if (alternatesList.isNotEmpty()) {
-            val radius = dpToPx(10f)
+            val radius = dpToPx(11f)
+            val shOff = dpToPx(3f)
+            previewRect.set(altBoxRect.left, altBoxRect.top + shOff, altBoxRect.right, altBoxRect.bottom + shOff)
+            canvas.drawRoundRect(previewRect, radius, radius, popupShadowPaint)
             canvas.drawRoundRect(altBoxRect, radius, radius, popupBgPaint)
             canvas.drawRoundRect(altBoxRect, radius, radius, popupBorderPaint)
 
@@ -171,7 +179,7 @@ class KeyboardContainerView @JvmOverloads constructor(
                 val itemLeft = altBoxRect.left + pad + i * itemW
                 altItemRect.set(itemLeft, altBoxRect.top + pad, itemLeft + itemW, altBoxRect.bottom - pad)
                 if (i == selectedAltIndex) {
-                    canvas.drawRoundRect(altItemRect, dpToPx(6f), dpToPx(6f), altHighlightPaint)
+                    canvas.drawRoundRect(altItemRect, dpToPx(7f), dpToPx(7f), altHighlightPaint)
                 }
                 val ch = alternatesList[i]
                 popupTextPaint.getTextBounds(ch, 0, ch.length, textBounds)
@@ -188,16 +196,19 @@ class KeyboardContainerView @JvmOverloads constructor(
         // Draw lightweight floating key preview bubble
         val key = previewKey ?: return
         val keyTopInContainer = keyboardView.top + key.bounds.top
-        val previewW = max(key.bounds.width() * 1.32f, dpToPx(42f))
-        val previewH = dpToPx(46f)
+        val previewW = max(key.bounds.width() * 1.38f, dpToPx(44f))
+        val previewH = dpToPx(48f)
 
         var left = key.bounds.centerX() - previewW / 2f
         left = max(dpToPx(4f), min(width - previewW - dpToPx(4f), left))
         val bottom = max(previewH + dpToPx(2f), keyTopInContainer - dpToPx(4f))
         val top = bottom - previewH
 
+        val radius = dpToPx(11f)
+        previewRect.set(left, top + dpToPx(2.5f), left + previewW, bottom + dpToPx(2.5f))
+        canvas.drawRoundRect(previewRect, radius, radius, popupShadowPaint)
+
         previewRect.set(left, top, left + previewW, bottom)
-        val radius = dpToPx(10f)
         canvas.drawRoundRect(previewRect, radius, radius, popupBgPaint)
         canvas.drawRoundRect(previewRect, radius, radius, popupBorderPaint)
 

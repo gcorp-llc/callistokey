@@ -39,6 +39,7 @@ enum class KeyType {
 
 /**
  * Data model for a single key on CallistoKey.
+ * Separates visual keycap bounds from expanded zero-dead-zone hitBounds for maximum touch precision.
  */
 data class KeyModel(
     val type: KeyType,
@@ -49,5 +50,6 @@ data class KeyModel(
     val weight: Float = 1.0f,
     val isSpecial: Boolean = false,
     val bounds: RectF = RectF(),
+    val hitBounds: RectF = RectF(),
     var isPressed: Boolean = false
 )
